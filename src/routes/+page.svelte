@@ -65,6 +65,11 @@
 		if (resource.spec.replicas === 1 || resource.spec.replicas === '') {
 			delete resource.spec['replicas'];
 		}
+		resource.spec.template.spec.containers.forEach((container: any) => {
+			if (container.ports.length === 0) {
+				delete container.ports;
+			}
+		});
 		yamlStr = yaml.dump(resource);
 	}
 
