@@ -2,21 +2,26 @@
 	import yaml from 'js-yaml';
 	import Highlight from 'svelte-highlight';
 	import { yaml as yamlLang } from 'svelte-highlight/languages/yaml';
+	import type { Deployment } from 'kubernetes-types/apps/v1';
+	import type { Container } from 'kubernetes-types/core/v1';
 	let appName = '';
 	let appNamePlaceholder = 'nginx';
 	let imagePlaceholder = 'nginx:latest';
 	let replicas: string | number = '';
 	let yamlStr = '';
-	type Container = {
+	type ContainerConfig = {
+		name: string;
 		image: string;
 		ports: (number | string)[];
 	};
-	const emptyContainer = {
+	const emptyContainer: ContainerConfig = {
+		name: '',
 		image: '',
 		ports: []
 	};
-	let containers: Container[] = [
+	let containers: ContainerConfig[] = [
 		{
+			name: '',
 			image: '',
 			ports: [80]
 		}
@@ -29,8 +34,29 @@
 			: '';
 	}
 
+	function numberOnly<T>(num: number | string, defaultValue: T): number | T {
+		return (typeof num == 'string' && isFinite(parseInt(num as string))) ||
+			(typeof num == 'number' && isFinite(num))
+			? parseInt(num as string)
+			: defaultValue;
+	}
+
+	function containerConfigToSpecTemplate(container: ContainerConfig, first: boolean): Container {
+		let name = first ? container.name || appName || appNamePlaceholder : container.name;
+		let image = container.image || imagePlaceholder;
+		const k8scontainer: Container = {
+			name,
+			image,
+			ports: undefined
+		};
+		if (container.ports.length > 0) {
+			k8scontainer.ports = container.ports.map((p) => ({ containerPort: numberOnly(p, 0) }));
+		}
+		return k8scontainer;
+	}
+
 	function buildYaml() {
-		let resource: any = {
+		let deployment: Deployment = {
 			apiVersion: 'apps/v1',
 			kind: 'Deployment',
 			metadata: {
@@ -40,7 +66,7 @@
 				}
 			},
 			spec: {
-				replicas,
+				replicas: numberOnly(replicas, undefined),
 				selector: {
 					matchLabels: {
 						app: appName || appNamePlaceholder
@@ -51,26 +77,17 @@
 						labels: { app: appName || appNamePlaceholder }
 					},
 					spec: {
-						containers: containers.map((container) => ({
-							name: appName || appNamePlaceholder,
-							image: container.image || imagePlaceholder,
-							ports: container.ports.map((p) => ({
-								containerPort: p
-							}))
-						}))
+						containers: containers.map((container, i) =>
+							containerConfigToSpecTemplate(container, i === 0)
+						)
 					}
 				}
 			}
 		};
-		if (resource.spec.replicas === 1 || resource.spec.replicas === '') {
-			delete resource.spec['replicas'];
+		if (deployment.spec?.replicas === 1) {
+			delete deployment.spec.replicas;
 		}
-		resource.spec.template.spec.containers.forEach((container: any) => {
-			if (container.ports.length === 0) {
-				delete container.ports;
-			}
-		});
-		yamlStr = yaml.dump(resource);
+		yamlStr = yaml.dump(deployment);
 	}
 
 	$: {
@@ -101,6 +118,17 @@
 	{#each containers as container, container_idx}
 		<div class="k-container card p-4 mt-4 mb-4">
 			<h2>Container</h2>
+			{#if containers.length > 1}
+				<label class="label">
+					<span>Name</span>
+					<input
+						class="input"
+						type="text"
+						placeholder={container_idx === 0 ? appName || appNamePlaceholder : undefined}
+						bind:value={container.name}
+					/>
+				</label>
+			{/if}
 			<label class="label">
 				<span>Image</span>
 				<input
