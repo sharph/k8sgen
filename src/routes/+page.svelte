@@ -116,6 +116,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Kubernetes Deployment YAML Generator</title>
+</svelte:head>
+
 <div class="flex w-full h-full">
 	<div class="deployment m-8 flex-auto">
 		<label class="label">
