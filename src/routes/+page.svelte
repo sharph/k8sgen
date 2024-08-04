@@ -213,7 +213,7 @@ KEY2=VALUE
 				class="btn variant-filled"
 				on:click={() => navigator.clipboard.writeText(yamlStr)}>Copy to clipboard</button
 			>
-			<Highlight language={yamlLang} code={yamlStr} />
+			<Highlight class="hljs" language={yamlLang} code={yamlStr} />
 		</div>
 	</div>
 </div>
