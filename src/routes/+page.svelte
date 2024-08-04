@@ -3,7 +3,7 @@
 	import Highlight from 'svelte-highlight';
 	import { yaml as yamlLang } from 'svelte-highlight/languages/yaml';
 	import type { Deployment } from 'kubernetes-types/apps/v1';
-	import type { Container } from 'kubernetes-types/core/v1';
+	import type { Container, EnvVar } from 'kubernetes-types/core/v1';
 	let appName = '';
 	let appNamePlaceholder = 'nginx';
 	let imagePlaceholder = 'nginx:latest';
@@ -13,17 +13,20 @@
 		name: string;
 		image: string;
 		ports: (number | string)[];
+		environment: string;
 	};
 	const emptyContainer: ContainerConfig = {
 		name: '',
 		image: '',
-		ports: []
+		ports: [],
+		environment: ''
 	};
 	let containers: ContainerConfig[] = [
 		{
 			name: '',
 			image: '',
-			ports: [80]
+			ports: [80],
+			environment: ''
 		}
 	];
 
@@ -41,16 +44,29 @@
 			: defaultValue;
 	}
 
+	function environmentStringToEnvVars(environment: string): EnvVar[] {
+		return environment
+			.split('\n')
+			.map((v) => v.split('=', 2))
+			.filter((v) => v.length === 2)
+			.map(([k, value]) => ({ name: k.split(' '), value }))
+			.map(({ name, value }) => ({ name: name[name.length - 1], value }));
+	}
+
 	function containerConfigToSpecTemplate(container: ContainerConfig, first: boolean): Container {
 		let name = first ? container.name || appName || appNamePlaceholder : container.name;
 		let image = container.image || imagePlaceholder;
 		const k8scontainer: Container = {
 			name,
 			image,
-			ports: undefined
+			ports: undefined,
+			env: environmentStringToEnvVars(container.environment)
 		};
 		if (container.ports.length > 0) {
 			k8scontainer.ports = container.ports.map((p) => ({ containerPort: numberOnly(p, 0) }));
+		}
+		if (k8scontainer.env?.length === 0) {
+			delete k8scontainer.env;
 		}
 		return k8scontainer;
 	}
@@ -159,6 +175,17 @@
 				class="btn variant-filled flex-none"
 				on:click={() => (container.ports = [...container.ports, 80])}>Add port</button
 			>
+			<label class="label">
+				<span>Environment</span>
+				<textarea
+					class="textarea"
+					rows="10"
+					placeholder="KEY=VALUE
+KEY2=VALUE
+..."
+					bind:value={container.environment}
+				/>
+			</label>
 			{#if container_idx > 0}
 				<button
 					type="button"
