@@ -8,5 +8,27 @@
 	</head>
 	<body data-sveltekit-preload-data="hover" data-theme="wintry">
 		<div style="display: contents" class="h-full overflow-hidden">%sveltekit.body%</div>
+		<script>
+		window.previousPath = location.pathname;
+		new MutationObserver(function (mutations) {
+			if (location.pathname === window.previousPath) {
+				return;
+			}
+			if (!window.goatcounter || !window.goatcounter.count) {
+				return;
+			}
+			window.previousPath = location.pathname;
+			window.goatcounter.count({
+				path: location.pathname + location.search + location.hash,
+			})
+		}).observe(document.querySelector('body'), {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			characterData: true,
+		});
+	</script>
+	<script data-goatcounter="https://k8sgen.goatcounter.com/count" async
+		src="//gc.zgo.at/count.js"></script>
 	</body>
 </html>
