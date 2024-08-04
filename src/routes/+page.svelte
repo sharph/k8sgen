@@ -116,98 +116,104 @@
 	}
 </script>
 
-<div class="deployment m-8">
-	<label class="label">
-		<span>Name</span>
-		<input
-			class="input"
-			type="text"
-			placeholder={appNamePlaceholder}
-			name="name"
-			bind:value={appName}
-		/>
-	</label>
-	<label class="label">
-		<span>Replicas</span>
-		<input class="input" type="text" placeholder="1" name="name" bind:value={replicas} />
-	</label>
-	{#each containers as container, container_idx}
-		<div class="k-container card p-4 mt-4 mb-4">
-			<h2>Container</h2>
-			{#if containers.length > 1}
+<div class="flex w-full h-full">
+	<div class="deployment m-8 flex-auto">
+		<label class="label">
+			<span>Name</span>
+			<input
+				class="input"
+				type="text"
+				placeholder={appNamePlaceholder}
+				name="name"
+				bind:value={appName}
+			/>
+		</label>
+		<label class="label">
+			<span>Replicas</span>
+			<input class="input" type="text" placeholder="1" name="name" bind:value={replicas} />
+		</label>
+		{#each containers as container, container_idx}
+			<div class="k-container card p-4 mt-4 mb-4">
+				<h2>Container</h2>
+				{#if containers.length > 1}
+					<label class="label">
+						<span>Name</span>
+						<input
+							class="input"
+							type="text"
+							placeholder={container_idx === 0 ? appName || appNamePlaceholder : undefined}
+							bind:value={container.name}
+						/>
+					</label>
+				{/if}
 				<label class="label">
-					<span>Name</span>
+					<span>Image</span>
 					<input
 						class="input"
 						type="text"
-						placeholder={container_idx === 0 ? appName || appNamePlaceholder : undefined}
-						bind:value={container.name}
+						placeholder={imagePlaceholder}
+						name="image"
+						bind:value={container.image}
 					/>
 				</label>
-			{/if}
-			<label class="label">
-				<span>Image</span>
-				<input
-					class="input"
-					type="text"
-					placeholder={imagePlaceholder}
-					name="image"
-					bind:value={container.image}
-				/>
-			</label>
-			{#each container.ports as port, idx}
-				<label class="label flex items-center">
-					<span class="flex-none label">Port #{idx + 1}</span>
-					<input class="input grow" type="text" bind:value={port} />
+				{#each container.ports as port, idx}
+					<label class="label flex items-center">
+						<span class="flex-none label">Port #{idx + 1}</span>
+						<input class="input grow" type="text" bind:value={port} />
+						<button
+							type="button"
+							class="btn variant-filled flex-none"
+							on:click={() =>
+								(container.ports = [
+									...container.ports.slice(0, idx),
+									...container.ports.slice(idx + 1)
+								])}>Remove</button
+						>
+					</label>
+				{/each}
+				<button
+					type="button"
+					class="btn variant-filled flex-none"
+					on:click={() => (container.ports = [...container.ports, 80])}>Add port</button
+				>
+				<label class="label">
+					<span>Environment</span>
+					<textarea
+						class="textarea"
+						rows="10"
+						placeholder="KEY=VALUE
+KEY2=VALUE
+..."
+						bind:value={container.environment}
+					/>
+				</label>
+				{#if container_idx > 0}
 					<button
 						type="button"
 						class="btn variant-filled flex-none"
 						on:click={() =>
-							(container.ports = [
-								...container.ports.slice(0, idx),
-								...container.ports.slice(idx + 1)
-							])}>Remove</button
+							(containers = [
+								...containers.slice(0, container_idx),
+								...containers.slice(container_idx + 1)
+							])}>Remove container</button
 					>
-				</label>
-			{/each}
+				{/if}
+			</div>
+		{/each}
+		<button
+			type="button"
+			class="btn variant-filled flex-none"
+			on:click={() => (containers = [...containers, { ...emptyContainer }])}>Add container</button
+		>
+	</div>
+	<div class="w-1/2">
+		<div class="sticky m-8 top-8">
 			<button
 				type="button"
-				class="btn variant-filled flex-none"
-				on:click={() => (container.ports = [...container.ports, 80])}>Add port</button
+				class="btn variant-filled"
+				on:click={() => navigator.clipboard.writeText(yamlStr)}>Copy to clipboard</button
 			>
-			<label class="label">
-				<span>Environment</span>
-				<textarea
-					class="textarea"
-					rows="10"
-					placeholder="KEY=VALUE
-KEY2=VALUE
-..."
-					bind:value={container.environment}
-				/>
-			</label>
-			{#if container_idx > 0}
-				<button
-					type="button"
-					class="btn variant-filled flex-none"
-					on:click={() =>
-						(containers = [
-							...containers.slice(0, container_idx),
-							...containers.slice(container_idx + 1)
-						])}>Remove container</button
-				>
-			{/if}
+			<Highlight language={yamlLang} code={yamlStr} />
 		</div>
-	{/each}
-	<button
-		type="button"
-		class="btn variant-filled flex-none"
-		on:click={() => (containers = [...containers, { ...emptyContainer }])}>Add container</button
-	>
+	</div>
 </div>
-<button
-	type="button"
-	class="btn variant-filled"
-	on:click={() => navigator.clipboard.writeText(yamlStr)}>Copy to clipboard</button
->
-<Highlight language={yamlLang} code={yamlStr} />
